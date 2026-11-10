@@ -1,4 +1,4 @@
-# Iconator
+# Icon Generator
 
 A free icon generator for aNewSpring activities. Pick a style (Line, Duotone, Badge or Soft), a colour and a line weight, then download any icon as a transparent PNG (78, 128, 256 or 512 px) or SVG, or download the whole set as a ZIP.
 
