@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Iconator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+  --bg:#EEF0F3; --panel:#FFFFFF; --ink:#1A1F29; --muted:#5B6372; --line:#D6DAE1; --field:#F6F7F9;
+  --pick:#BF0D4B;
+  color-scheme: light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#161A21; --panel:#1F242D; --ink:#E9ECF1; --muted:#9AA3B2; --line:#323946; --field:#272D37; color-scheme:dark; }
+}
+:root[data-theme="dark"]{ --bg:#161A21; --panel:#1F242D; --ink:#E9ECF1; --muted:#9AA3B2; --line:#323946; --field:#272D37; color-scheme:dark; }
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Figtree,"Segoe UI",system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 24px 48px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:24px}
+h1{font-size:34px;line-height:1.1;margin:0;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:12px}
+h1 .mark{width:38px;height:38px;border-radius:11px;background:var(--pick);display:grid;place-items:center;transition:background .2s}
+h1 .mark svg{width:24px;height:24px}
+header p{margin:6px 0 0;color:var(--muted);max-width:58ch}
+.app{display:grid;grid-template-columns:320px 1fr;gap:24px;align-items:start}
+aside{position:sticky;top:calc(16px + env(safe-area-inset-top,0px));background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px}
+.preview{background:#fff;border:1px solid var(--line);border-radius:12px;aspect-ratio:1/1;display:grid;place-items:center;position:relative;overflow:hidden}
+.preview svg{width:46%;height:46%}
+.preview .size{position:absolute;right:10px;bottom:8px;font-size:12px;color:#7A8291}
+.pname{font-weight:600;font-size:17px;margin:12px 0 10px}
+.row{display:flex;gap:8px}
+button{font:inherit;color:inherit;cursor:pointer}
+.btn{flex:1;border:1px solid var(--line);background:var(--field);border-radius:10px;padding:9px 12px;font-weight:600;font-size:14px}
+.btn:hover{border-color:var(--pick)}
+.btn.primary{background:var(--pick);border-color:var(--pick);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.5;cursor:default}
+.group{margin-top:20px}
+.group > label, .lab{display:block;font-weight:600;font-size:13px;margin-bottom:8px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;border-radius:7px;padding:7px 4px;font-size:13px;font-weight:500;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 0 0 1px var(--line)}
+.seg.off{opacity:.45;pointer-events:none}
+.swatches{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sw{width:30px;height:30px;border-radius:50%;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--line);padding:0}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--ink)}
+.custom{display:flex;gap:8px;margin-top:10px;align-items:center}
+.custom input[type=color]{width:38px;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--field);padding:2px;cursor:pointer}
+.custom input[type=text]{flex:1;min-width:0;font:inherit;font-size:14px;border:1px solid var(--line);background:var(--field);color:var(--ink);border-radius:8px;padding:6px 10px;text-transform:uppercase}
+input[type=range]{width:100%;accent-color:var(--pick)}
+.hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.all{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+main{min-width:0}
+.bar{display:flex;gap:12px;align-items:center;margin-bottom:16px}
+.search{flex:1;position:relative}
+.search input{width:100%;font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:11px 14px 11px 40px}
+.search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted)}
+.count{color:var(--muted);font-size:14px;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}
+.tile{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 8px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;color:#4A5160}
+.tile svg{width:44px;height:44px}
+.tile span{font-size:12.5px;font-weight:500}
+.tile:hover{border-color:var(--pick)}
+.tile[aria-pressed="true"]{border-color:var(--pick);box-shadow:0 0 0 2px var(--pick)}
+.empty{padding:40px;text-align:center;color:var(--muted);grid-column:1/-1}
+:focus-visible{outline:2px solid var(--pick);outline-offset:2px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr}
+  aside{position:static}
+  .preview{aspect-ratio:auto;height:180px}
+  .preview svg{width:120px;height:120px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1><span class="mark" id="mark"></span>Iconator</h1>
+    <p>Pick a style and colour, choose an icon, then download it for your aNewSpring activities. PNGs have transparent backgrounds.</p>
+  </div>
+</header>
+<div class="app">
+<aside>
+  <div class="preview" id="preview"></div>
+  <div class="pname" id="pname">Book</div>
+  <div class="row">
+    <button class="btn primary" id="dlPng">Download PNG</button>
+    <button class="btn" id="dlSvg">Download SVG</button>
+  </div>
+
+  <div class="group">
+    <span class="lab" id="lStyle">Style</span>
+    <div class="seg" id="style" role="group" aria-labelledby="lStyle">
+      <button data-v="line">Line</button><button data-v="duo">Duotone</button><button data-v="badge">Badge</button><button data-v="soft">Soft</button>
+    </div>
+  </div>
+  <div class="group">
+    <span class="lab" id="lShape">Badge shape</span>
+    <div class="seg" id="shape" role="group" aria-labelledby="lShape">
+      <button data-v="circle">Circle</button><button data-v="round">Rounded</button><button data-v="square">Square</button>
+    </div>
+  </div>
+  <div class="group">
+    <span class="lab">Colour</span>
+    <div class="swatches" id="swatches"></div>
+    <div class="custom">
+      <input type="color" id="picker" aria-label="Custom colour">
+      <input type="text" id="hex" maxlength="7" aria-label="Hex colour code" spellcheck="false">
+    </div>
+  </div>
+  <div class="group">
+    <label for="weight">Line weight</label>
+    <input type="range" id="weight" min="1.25" max="2.5" step="0.25">
+  </div>
+  <div class="group">
+    <span class="lab" id="lSize">PNG size</span>
+    <div class="seg" id="size" role="group" aria-labelledby="lSize">
+      <button data-v="78">78 px</button><button data-v="128">128</button><button data-v="256">256</button><button data-v="512">512</button>
+    </div>
+    <p class="hint">78 px matches the size of the default aNewSpring icons.</p>
+  </div>
+  <div class="all">
+    <button class="btn" id="dlAll" style="width:100%">Download all icons (ZIP)</button>
+    <p class="hint">Every icon in the current style and colour, as PNG and SVG.</p>
+  </div>
+</aside>
+<main>
+  <div class="bar">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5l5 5"/></svg>
+      <input type="search" id="q" placeholder="Search icons, e.g. quiz, video, certificate" aria-label="Search icons">
+    </div>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+</div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+const ICONS = [
+["Book","read reading course module",`<path class="f" d="M12 6.5C10 5 7.5 4.5 3.5 4.5v13c4 0 6.5.5 8.5 2z"/><path d="M12 6.5C10 5 7.5 4.5 3.5 4.5v13c4 0 6.5.5 8.5 2 2-1.5 4.5-2 8.5-2v-13c-4 0-6.5.5-8.5 2z"/><path d="M12 6.5v13"/>`],
+["Bookmark","save resource favourite",`<path class="f" d="M6.5 3.5h11a1 1 0 0 1 1 1v16l-6.5-4.5-6.5 4.5v-16a1 1 0 0 1 1-1z"/><path d="M6.5 3.5h11a1 1 0 0 1 1 1v16l-6.5-4.5-6.5 4.5v-16a1 1 0 0 1 1-1z"/>`],
+["Announcement","megaphone news notice",`<path class="f" d="M8 8.5 17 4v16l-9-4.5z"/><path d="M4 10v4a1.5 1.5 0 0 0 1.5 1.5H8l9 4.5V4L8 8.5H5.5A1.5 1.5 0 0 0 4 10z"/><path d="M8 8.5v7"/><path d="M8 15.5l1.3 4.7"/><path d="M20.5 10v4"/>`],
+["Chat","message comment forum",`<path class="f" d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-5 3.5V17h-.5A1.5 1.5 0 0 1 4 15.5z"/><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-5 3.5V17h-.5A1.5 1.5 0 0 1 4 15.5z"/><circle class="d" cx="8.5" cy="10.5" r="1.1"/><circle class="d" cx="12" cy="10.5" r="1.1"/><circle class="d" cx="15.5" cy="10.5" r="1.1"/>`],
+["Discussion","forum conversation peer",`<path class="f" d="M3.5 5.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H9l-3.5 3v-3a2 2 0 0 1-2-2z"/><path d="M3.5 5.5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H9l-3.5 3v-3a2 2 0 0 1-2-2z"/><path d="M18.5 8.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2v3l-3.5-3h-3a2 2 0 0 1-2-1.6"/>`],
+["Download","file save resource",`<rect class="f" x="4" y="14" width="16" height="6" rx="2"/><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/><path d="M12 4v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/>`],
+["Upload","submit assignment file",`<rect class="f" x="4" y="14" width="16" height="6" rx="2"/><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/><path d="M12 15V4"/><path d="M7.5 8.5 12 4l4.5 4.5"/>`],
+["Write","edit note essay reflection",`<path class="f" d="M17.6 3.9a1.9 1.9 0 0 1 2.7 2.7l-7.8 7.8-3.5.6.6-3.5z"/><path d="M11 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V13"/><path d="M17.6 3.9a1.9 1.9 0 0 1 2.7 2.7l-7.8 7.8-3.5.6.6-3.5z"/>`],
+["Document","page pdf text handout",`<path class="f" d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5"/><path d="M9 13h6M9 16.5h4"/>`],
+["Flag","milestone goal start",`<path class="f" d="M5.5 4.5c2-1 4-1 6 0s4 1 6.5 0v9c-2.5 1-4.5 1-6.5 0s-4-1-6 0z"/><path d="M5.5 21V4"/><path d="M5.5 4.5c2-1 4-1 6 0s4 1 6.5 0v9c-2.5 1-4.5 1-6.5 0s-4-1-6 0"/>`],
+["Gift","bonus reward extra",`<path class="f" d="M5 12h14v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19z"/><rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v7a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-7"/><path d="M12 8v12.5"/><path d="M12 8C10.6 5.2 7 4.6 7 6.5S10 8 12 8zm0 0c1.4-2.8 5-3.4 5-1.5S14 8 12 8z"/>`],
+["Info","information about help",`<circle class="f" cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle class="d" cx="12" cy="7.9" r="1.15"/>`],
+["Question","faq help ask",`<circle class="f" cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1.1.9-1.1 1.6v.5"/><circle class="d" cx="12" cy="16.8" r="1.15"/>`],
+["Warning","alert important caution",`<path class="f" d="M10.3 4.3 3 17a2 2 0 0 0 1.7 3h14.6a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z"/><path d="M10.3 4.3 3 17a2 2 0 0 0 1.7 3h14.6a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4"/><circle class="d" cx="12" cy="16.6" r="1.1"/>`],
+["Idea","lightbulb tip insight",`<path class="f" d="M12 3a6 6 0 0 0-3.5 10.9c.3.3.5.7.5 1.2v2.4h6v-2.4c0-.5.2-.9.5-1.2A6 6 0 0 0 12 3z"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.3.3.5.7.5 1.2v2.4h6v-2.4c0-.5.2-.9.5-1.2A6 6 0 0 0 12 3z"/><path d="M10 21h4"/><path d="M12 6.5a2.5 2.5 0 0 0-2.5 2.5"/>`],
+["Attachment","paperclip file resource",`<path d="M20 11.5l-7.6 7.6a5 5 0 0 1-7.1-7.1l7.8-7.8a3.3 3.3 0 0 1 4.7 4.7l-7.8 7.8a1.7 1.7 0 0 1-2.4-2.4l7.1-7.1"/>`],
+["Pencil","exercise practice draw",`<path class="f" d="M15.2 4.8a2.1 2.1 0 0 1 3 0l1 1a2.1 2.1 0 0 1 0 3L8.5 19.5 4 20l.5-4.5z"/><path d="M15.2 4.8a2.1 2.1 0 0 1 3 0l1 1a2.1 2.1 0 0 1 0 3L8.5 19.5 4 20l.5-4.5z"/><path d="M13.5 6.5l4 4"/>`],
+["Puzzle","challenge activity problem",`<path class="f" d="M4.5 8H8c0-1.5.8-3 2.5-3S13 6.5 13 8h3.5v3.5c1.5 0 3 .8 3 2.5s-1.5 2.5-3 2.5V20h-12z"/><path d="M4.5 8H8c0-1.5.8-3 2.5-3S13 6.5 13 8h3.5v3.5c1.5 0 3 .8 3 2.5s-1.5 2.5-3 2.5V20h-12z"/>`],
+["Star","favourite highlight rating",`<path class="f" d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>`],
+["Refresh","repeat retry recap revision",`<path d="M19.5 12a7.5 7.5 0 0 1-13.2 4.9"/><path d="M4.5 12a7.5 7.5 0 0 1 13.2-4.9"/><path d="M17.9 3.5v3.8h-3.8"/><path d="M6.1 20.5v-3.8h3.8"/>`],
+["Tag","label category topic",`<path class="f" d="M3.5 5.5v5.2a2 2 0 0 0 .6 1.4l8 8a2 2 0 0 0 2.8 0l5.2-5.2a2 2 0 0 0 0-2.8l-8-8a2 2 0 0 0-1.4-.6H5.5a2 2 0 0 0-2 2z"/><path d="M3.5 5.5v5.2a2 2 0 0 0 .6 1.4l8 8a2 2 0 0 0 2.8 0l5.2-5.2a2 2 0 0 0 0-2.8l-8-8a2 2 0 0 0-1.4-.6H5.5a2 2 0 0 0-2 2z"/><circle cx="8" cy="8" r="1.4"/>`],
+["Pin","pinned important note",`<path class="f" d="M10 3.5v5.5L6.5 13h11L14 9V3.5z"/><path d="M8.5 3.5h7"/><path d="M10 3.5v5.5L6.5 13h11L14 9V3.5"/><path d="M12 13v7.5"/>`],
+["Trophy","achievement winner award",`<path class="f" d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H4.5v1a3.5 3.5 0 0 0 3.7 3.5"/><path d="M16 6h3.5v1a3.5 3.5 0 0 1-3.7 3.5"/><path d="M12 13v3.5"/><rect x="8" y="16.5" width="8" height="4" rx="1.2"/>`],
+["Medal","badge achievement earned",`<path class="f" d="M8.5 13.2 7 20.5l5-2.5 5 2.5-1.5-7.3"/><circle class="f" cx="12" cy="9" r="5.5"/><circle cx="12" cy="9" r="5.5"/><path d="M8.5 13.2 7 20.5l5-2.5 5 2.5-1.5-7.3"/><path d="M12 6.5l.8 1.6 1.7.2-1.2 1.2.3 1.7-1.6-.8-1.6.8.3-1.7-1.2-1.2 1.7-.2z"/>`],
+["Certificate","diploma qualification completion",`<path class="f" d="M5 4.5h14A1.5 1.5 0 0 1 20.5 6v9a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 15V6A1.5 1.5 0 0 1 5 4.5z"/><path d="M13 16.5H5A1.5 1.5 0 0 1 3.5 15V6A1.5 1.5 0 0 1 5 4.5h14A1.5 1.5 0 0 1 20.5 6v9a1.5 1.5 0 0 1-1.5 1.5"/><path d="M7 8.5h10M7 11.5h4.5"/><circle cx="16" cy="14.5" r="2.5"/><path d="M14.6 16.6V21l1.4-1 1.4 1v-4.4"/>`],
+["Graduation","study learn education",`<path class="f" d="M12 4.5 2.5 9l9.5 4.5L21.5 9z"/><path d="M12 4.5 2.5 9l9.5 4.5L21.5 9z"/><path d="M6.5 11v4.5c0 1.5 2.5 3 5.5 3s5.5-1.5 5.5-3V11"/><path d="M21.5 9v5"/>`],
+["Person","profile learner user",`<circle class="f" cx="12" cy="8" r="3.5"/><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>`],
+["Group","team people cohort",`<circle class="f" cx="12" cy="8.5" r="3"/><circle cx="12" cy="8.5" r="3"/><path d="M6.5 19.5a5.5 5.5 0 0 1 11 0"/><circle cx="5.5" cy="10" r="2.2"/><path d="M2.5 18a4 4 0 0 1 3-3.6"/><circle cx="18.5" cy="10" r="2.2"/><path d="M21.5 18a4 4 0 0 0-3-3.6"/>`],
+["Video","watch clip lecture",`<rect class="f" x="3" y="6.5" width="12.5" height="11" rx="2"/><rect x="3" y="6.5" width="12.5" height="11" rx="2"/><path d="M15.5 10.5l5-3v9l-5-3"/>`],
+["Play","start begin media",`<circle class="f" cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="8.5"/><path d="M10 8.7v6.6l5.2-3.3z"/>`],
+["Audio","headphones listen podcast",`<rect class="f" x="3.5" y="14" width="4" height="6.5" rx="1.5"/><rect class="f" x="16.5" y="14" width="4" height="6.5" rx="1.5"/><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3.5" y="14" width="4" height="6.5" rx="1.5"/><rect x="16.5" y="14" width="4" height="6.5" rx="1.5"/>`],
+["Microphone","record speak oral",`<rect class="f" x="9" y="3" width="6" height="11" rx="3"/><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/><path d="M8.5 21h7"/>`],
+["Quiz","test checklist questions",`<path d="M4 6.5l1.5 1.5 3-3"/><path d="M11.5 6.5h8.5"/><path d="M4 12.5l1.5 1.5 3-3"/><path d="M11.5 12.5h8.5"/><rect class="f" x="4" y="16.5" width="4" height="4" rx="1"/><rect x="4" y="16.5" width="4" height="4" rx="1"/><path d="M11.5 18.5h8.5"/>`],
+["Assignment","task clipboard submit",`<rect class="f" x="5" y="4.5" width="14" height="16.5" rx="2"/><rect x="5" y="4.5" width="14" height="16.5" rx="2"/><rect x="9" y="3" width="6" height="3.2" rx="1"/><path d="M9 13.2l2 2 4-4"/>`],
+["Complete","done check finished",`<circle class="f" cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="8.5"/><path d="M8 12.5l2.7 2.7L16 10"/>`],
+["Clock","time duration deadline",`<circle class="f" cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>`],
+["Calendar","date schedule event",`<rect class="f" x="3.5" y="5" width="17" height="4.5"/><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v4M16 3v4"/><circle class="d" cx="8" cy="13.5" r="1"/><circle class="d" cx="12" cy="13.5" r="1"/><circle class="d" cx="16" cy="13.5" r="1"/><circle class="d" cx="8" cy="17" r="1"/><circle class="d" cx="12" cy="17" r="1"/>`],
+["Target","objective goal outcome",`<circle class="f" cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><circle class="d" cx="12" cy="12" r="1.6"/>`],
+["Link","url web external",`<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>`],
+["Lock","locked restricted prerequisite",`<rect class="f" x="5" y="10.5" width="14" height="10" rx="2"/><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><path d="M12 14.5v2.5"/>`],
+["Launch","rocket start kickoff",`<path class="f" d="M12 2.8c3 2 4.5 5.4 4.5 9.2v4h-9v-4c0-3.8 1.5-7.2 4.5-9.2z"/><path d="M12 2.8c3 2 4.5 5.4 4.5 9.2v4h-9v-4c0-3.8 1.5-7.2 4.5-9.2z"/><circle cx="12" cy="9.5" r="1.6"/><path d="M7.5 13 5 15v3.5L7.5 17"/><path d="M16.5 13l2.5 2v3.5L16.5 17"/><path d="M10.5 19c0 1 .6 1.8 1.5 2.2.9-.4 1.5-1.2 1.5-2.2"/>`],
+["Chart","results progress report",`<rect class="f" x="7" y="12" width="3" height="5" rx=".8"/><rect class="f" x="11.5" y="7.5" width="3" height="9.5" rx=".8"/><rect class="f" x="16" y="10" width="3" height="7" rx=".8"/><path d="M4 4v15.5a.5.5 0 0 0 .5.5H20"/><rect x="7" y="12" width="3" height="5" rx=".8"/><rect x="11.5" y="7.5" width="3" height="9.5" rx=".8"/><rect x="16" y="10" width="3" height="7" rx=".8"/>`],
+["Presentation","slides lecture webinar",`<rect class="f" x="4" y="4.5" width="16" height="11" rx="1"/><path d="M3 4.5h18"/><rect x="4" y="4.5" width="16" height="11" rx="1"/><path d="M12 15.5V18"/><path d="M8.5 21l3.5-3 3.5 3"/><path d="M8 12l2.5-2.5 2 2 3.5-3.5"/>`],
+["Globe","world online web",`<circle class="f" cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17"/><ellipse cx="12" cy="12" rx="3.8" ry="8.5"/>`],
+["Compass","explore navigate orientation",`<path class="f" d="M15.5 8.5l-2 5-5 2 2-5z"/><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>`],
+["Map","journey route learning path",`<path class="f" d="M9 4.5v13l-5.5 2v-13z"/><path d="M9 4.5 3.5 6.5v13l5.5-2 6 2 5.5-2v-13l-5.5 2z"/><path d="M9 4.5v13M15 6.5v13"/>`],
+["Search","find explore research",`<circle class="f" cx="10.5" cy="10.5" r="6.5"/><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5l5 5"/>`],
+["Heart","wellbeing like care",`<path class="f" d="M12 19.5C6 15.5 3.5 12.6 3.5 9.4A4.4 4.4 0 0 1 12 7.2a4.4 4.4 0 0 1 8.5 2.2c0 3.2-2.5 6.1-8.5 10.1z"/><path d="M12 19.5C6 15.5 3.5 12.6 3.5 9.4A4.4 4.4 0 0 1 12 7.2a4.4 4.4 0 0 1 8.5 2.2c0 3.2-2.5 6.1-8.5 10.1z"/>`],
+["Feedback","survey evaluation smile",`<circle class="f" cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="8.5"/><path d="M8.5 14a4 4 0 0 0 7 0"/><circle class="d" cx="9.3" cy="10" r="1.1"/><circle class="d" cx="14.7" cy="10" r="1.1"/>`],
+["New","sparkle highlight fresh",`<path class="f" d="M11 3.5l1.8 5.2 5.2 1.8-5.2 1.8L11 17.5l-1.8-5.2L4 10.5l5.2-1.8z"/><path d="M11 3.5l1.8 5.2 5.2 1.8-5.2 1.8L11 17.5l-1.8-5.2L4 10.5l5.2-1.8z"/><path d="M18.5 15v5M16 17.5h5"/>`],
+["Email","mail message contact",`<rect class="f" x="3.5" y="5.5" width="17" height="13" rx="2"/><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4 7l8 6 8-6"/>`],
+["Folder","resources files library",`<path class="f" d="M3.5 7A1.5 1.5 0 0 1 5 5.5h4l2 2h8A1.5 1.5 0 0 1 20.5 9v9a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 18z"/><path d="M3.5 7A1.5 1.5 0 0 1 5 5.5h4l2 2h8A1.5 1.5 0 0 1 20.5 9v9a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 18z"/>`],
+["Home","start dashboard welcome",`<path class="f" d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-4v-5h-5v5h-4A1.5 1.5 0 0 1 4 19z"/><path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 19z"/><path d="M9.5 20.5v-5h5v5"/>`],
+["Break","coffee pause rest",`<path class="f" d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 10.5h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8.5 3.5V6M12.5 3.5V6"/><path d="M4 21h13"/>`],
+["Laptop","online elearning digital",`<rect class="f" x="5" y="5" width="14" height="10" rx="1"/><rect x="5" y="5" width="14" height="10" rx="1"/><path d="M2.5 18.5h19"/><path d="M3.5 18.5 5 15h14l1.5 3.5"/>`],
+];
+
+const SWATCHES=[["aNewSpring pink","#BF0D4B"],["Navy","#1E3A8A"],["Blue","#1D6FD8"],["Teal","#0F766E"],["Green","#2F7D32"],["Amber","#C2620A"],["Violet","#6D28D9"],["Charcoal","#2A2F3A"]];
+const S={style:"duo",shape:"circle",color:"#BF0D4B",weight:1.75,size:78,sel:0,q:""};
+try{const saved=JSON.parse(localStorage.getItem("iconator")||"null");if(saved)Object.assign(S,saved,{q:""});}catch(e){}
+if(!ICONS[S.sel])S.sel=0;
+function persist(){try{localStorage.setItem("iconator",JSON.stringify({style:S.style,shape:S.shape,color:S.color,weight:S.weight,size:S.size,sel:S.sel}))}catch(e){}}
+
+function hexToRgb(h){h=h.replace("#","");return [0,2,4].map(i=>parseInt(h.substr(i,2),16))}
+function mix(h,w,t){const a=hexToRgb(h),b=hexToRgb(w);return "#"+a.map((v,i)=>Math.round(v*(1-t)+b[i]*t).toString(16).padStart(2,"0")).join("")}
+function slug(s){return s.toLowerCase().replace(/[^a-z0-9]+/g,"-")}
+
+function svgFor(icon,o,px){
+  const m=icon[2],c=o.color,sw=o.weight;
+  const g=(stroke,fill,fop,dot)=>m.replace(/class="f"/g,fill?`fill="${fill}" fill-opacity="${fop}" stroke="none"`:`fill="none" stroke="none"`).replace(/class="d"/g,`fill="${dot}" stroke="none"`);
+  const attrs=(stroke,w)=>`fill="none" stroke="${stroke}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
+  const size=px?` width="${px}" height="${px}"`:"";
+  let body,vb;
+  if(o.style==="line"||o.style==="duo"){
+    vb="-1.5 -1.5 27 27";
+    body=`<g ${attrs(c,sw)}>${g(c,o.style==="duo"?c:null,0.2,c)}</g>`;
+  }else{
+    vb="0 0 24 24";
+    const bg=o.style==="badge"?c:mix(c,"#ffffff",0.86);
+    const fg=o.style==="badge"?"#ffffff":c;
+    const fop=o.style==="badge"?0.28:0.2;
+    const shape=o.shape==="circle"?`<circle cx="12" cy="12" r="12" fill="${bg}"/>`:`<rect width="24" height="24" rx="${o.shape==="round"?6.5:2.5}" fill="${bg}"/>`;
+    const k=0.6,t=(24-24*k)/2;
+    body=`${shape}<g transform="translate(${t} ${t}) scale(${k})" ${attrs(fg,(sw/k*0.78).toFixed(2))}>${g(fg,fg,fop,fg)}</g>`;
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}"${size}>${body}</svg>`;
+}
+
+const $=id=>document.getElementById(id);
+const grid=$("grid");
+
+function setSeg(id,val){document.querySelectorAll(`#${id} button`).forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===String(val))))}
+function renderControls(){
+  setSeg("style",S.style);setSeg("shape",S.shape);setSeg("size",S.size);
+  $("shape").classList.toggle("off",!(S.style==="badge"||S.style==="soft"));
+  document.querySelectorAll(".sw").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.c.toLowerCase()===S.color.toLowerCase())));
+  $("picker").value=S.color;$("hex").value=S.color.toUpperCase();$("weight").value=S.weight;
+  document.documentElement.style.setProperty("--pick",S.color);
+}
+function renderPreview(){
+  const ic=ICONS[S.sel];
+  $("preview").innerHTML=svgFor(ic,S)+`<span class="size">${S.size} × ${S.size} px</span>`;
+  $("pname").textContent=ic[0];
+  $("mark").innerHTML=svgFor(ICONS.find(i=>i[0]==="Star"),{...S,style:"line",color:"#ffffff",weight:2});
+}
+function renderGrid(){
+  const q=S.q.trim().toLowerCase();
+  const list=ICONS.map((ic,i)=>[ic,i]).filter(([ic])=>!q||(ic[0]+" "+ic[1]).toLowerCase().includes(q));
+  $("count").textContent=`${list.length} of ${ICONS.length} icons`;
+  if(!list.length){grid.innerHTML=`<div class="empty">No icons match “${S.q.replace(/</g,"&lt;")}”. Try a broader word like “file” or “people”.</div>`;return}
+  grid.innerHTML=list.map(([ic,i])=>`<button class="tile" data-i="${i}" aria-pressed="${i===S.sel}" title="${ic[0]}">${svgFor(ic,S)}<span>${ic[0]}</span></button>`).join("");
+}
+function renderAll(){renderControls();renderPreview();renderGrid();persist()}
+
+// swatches
+$("swatches").innerHTML=SWATCHES.map(([n,c])=>`<button class="sw" data-c="${c}" style="background:${c}" title="${n}" aria-label="${n}"></button>`).join("");
+$("swatches").addEventListener("click",e=>{const b=e.target.closest(".sw");if(b){S.color=b.dataset.c;renderAll()}});
+$("picker").addEventListener("input",e=>{S.color=e.target.value;renderAll()});
+$("hex").addEventListener("change",e=>{let v=e.target.value.trim();if(!v.startsWith("#"))v="#"+v;if(/^#[0-9a-f]{6}$/i.test(v)){S.color=v.toLowerCase();renderAll()}else{e.target.value=S.color.toUpperCase();toast("Use a 6-digit hex code, like #BF0D4B")}});
+$("weight").addEventListener("input",e=>{S.weight=parseFloat(e.target.value);renderAll()});
+["style","shape","size"].forEach(id=>$(id).addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;S[id]=id==="size"?parseInt(b.dataset.v):b.dataset.v;renderAll()}));
+grid.addEventListener("click",e=>{const t=e.target.closest(".tile");if(!t)return;S.sel=+t.dataset.i;grid.querySelectorAll(".tile").forEach(x=>x.setAttribute("aria-pressed",String(x===t)));renderPreview();persist()});
+$("q").addEventListener("input",e=>{S.q=e.target.value;renderGrid()});
+
+// export
+function svgToPngBlob(svg,px){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    img.onload=()=>{const cv=document.createElement("canvas");cv.width=cv.height=px;const cx=cv.getContext("2d");cx.drawImage(img,0,0,px,px);cv.toBlob(b=>b?res(b):rej(new Error("png")),"image/png")};
+    img.onerror=()=>rej(new Error("render"));
+    img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+  });
+}
+let dlNs;const dlReady=(window.claude&&window.claude.use)?window.claude.use("downloads").then(n=>dlNs=n).catch(()=>null):Promise.resolve(null);
+async function save(filename,data){
+  if(window.claude&&window.claude.use){await Promise.race([dlReady,new Promise(r=>setTimeout(r,1500))])}
+  if(dlNs){
+    try{await dlNs.save({filename,data});toast(`Saved ${filename}`)}catch(err){if(err&&err.code!=="declined")toast("That download could not be saved here. Try again in a moment.")}
+    return;
+  }
+  const url=URL.createObjectURL(data instanceof Blob?data:new Blob([data]));
+  const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+function base(ic){return `${slug(ic[0])}-${S.style}`}
+$("dlPng").addEventListener("click",async()=>{const ic=ICONS[S.sel];const b=await svgToPngBlob(svgFor(ic,S,S.size),S.size);save(`${base(ic)}-${S.size}.png`,b)});
+$("dlSvg").addEventListener("click",()=>{const ic=ICONS[S.sel];save(`${base(ic)}.svg`,new Blob([svgFor(ic,S,S.size)],{type:"image/svg+xml"}))});
+$("dlAll").addEventListener("click",async()=>{
+  if(typeof JSZip==="undefined"){toast("The ZIP tool did not load. Reload the page and try again.");return}
+  const btn=$("dlAll");btn.disabled=true;btn.textContent="Building ZIP…";
+  try{
+    const zip=new JSZip(),png=zip.folder("png"),svgf=zip.folder("svg");
+    for(const ic of ICONS){const s=svgFor(ic,S,S.size);svgf.file(`${base(ic)}.svg`,s);png.file(`${base(ic)}-${S.size}.png`,await svgToPngBlob(s,S.size))}
+    const blob=await zip.generateAsync({type:"blob"});
+    await save(`iconator-${S.style}-${S.color.replace("#","")}-${S.size}.zip`,blob);
+  }catch(e){toast("The ZIP could not be built. Try a smaller PNG size.")}
+  btn.disabled=false;btn.textContent="Download all icons (ZIP)";
+});
+let tt;function toast(m){const t=$("toast");t.textContent=m;t.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("on"),2600)}
+
+renderAll();
+</script>
+</body>
+</html>
